@@ -3,6 +3,13 @@ on:
   push:
     tags:
       - '*'
+  workflow_dispatch:
+    inputs:
+      git_ref:
+        description: 'Git ref (tag or commit) to build'
+        required: true
+        type: string
+
 jobs:
   build:
     name: Build for ${{ matrix.name }}
@@ -15,16 +22,18 @@ jobs:
             name: linux64
             artifact_name: target/release/ic-wasm
             asset_name: ic-wasm-linux64
-          - os: ubuntu-20.04
-            name: linux-musl
-            artifact_name: target/release/ic-wasm
-            asset_name: ic-wasm-linux-musl
           - os: macos-13
             name: macos
             artifact_name: target/release/ic-wasm
             asset_name: ic-wasm-macos
+          - os: ubuntu-latest
+            name: linux-musl
+            artifact_name: target/release/ic-wasm
+            asset_name: ic-wasm-linux-musl
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.git_ref || github.ref }}
 
       # Regular build for non-MUSL targets
       - name: Build (non-MUSL)
@@ -62,9 +71,7 @@ jobs:
             asset_name: ic-wasm-linux64
           - os: ubuntu-20.04
             asset_name: ic-wasm-linux64
-          - os: ubuntu-22.04
-            asset_name: ic-wasm-linux-musl
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             asset_name: ic-wasm-linux-musl
           - os: macos-13
             asset_name: ic-wasm-macos
@@ -117,7 +124,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ic-wasm
           asset_name: ${{ matrix.asset_name }}
-          tag: ${{ github.ref }}
+          tag: ${{ github.event.inputs.git_ref || github.ref }}
 
       - name: Bundle for binstall
         run: |
@@ -130,4 +137,4 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ matrix.binstall_name }}
           asset_name: ${{ matrix.binstall_name }}
-          tag: ${{ github.ref }}
+          tag: ${{ github.event.inputs.git_ref || github.ref }}
